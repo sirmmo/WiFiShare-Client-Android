@@ -3,6 +3,7 @@ package it.mmo.wifisher;
 
 import java.util.List;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
