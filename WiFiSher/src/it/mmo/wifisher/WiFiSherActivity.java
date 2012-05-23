@@ -97,7 +97,7 @@ public class WiFiSherActivity extends Activity implements OnClickListener, Locat
 		}
 	}
 	
-	public void writeScan(String text){
+	public void writeScan(JSONArray items){
 		JSONObject obj = new JSONObject();
 		try{
 			JSONObject loc = new JSONObject();
@@ -111,7 +111,7 @@ public class WiFiSherActivity extends Activity implements OnClickListener, Locat
 			obj.put("location", loc);
 			
 			
-			obj.put("scan_data", text);
+			obj.put("scan_data", items);
 		
 		} catch (JSONException e) {
 			e.printStackTrace();
