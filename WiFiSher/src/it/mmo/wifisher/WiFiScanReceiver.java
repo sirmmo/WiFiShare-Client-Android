@@ -24,10 +24,10 @@ public class WiFiScanReceiver extends BroadcastReceiver {
   public void onReceive(Context c, Intent intent) {
     List<ScanResult> results = wifiDemo.wifi.getScanResults();
     ScanResult bestSignal = null;
-    StringBuilder sb = new StringBuilder();
+    JSONArray jsa = new JSONArray();
+    
     for (ScanResult result : results) {
-    	sb.append(result.toString());
-    	sb.append('\n');
+      JSONObject obj = new JSONObject();
     	Log.d(TAG, result.toString());
       if (bestSignal == null
           || WifiManager.compareSignalLevel(bestSignal.level, result.level) < 0)
@@ -39,7 +39,7 @@ public class WiFiScanReceiver extends BroadcastReceiver {
         results.size(), bestSignal.SSID);
     Toast.makeText(wifiDemo, message, Toast.LENGTH_LONG).show();
 
-    wifiDemo.writeScan(sb.toString());
+    wifiDemo.writeScan(jsa);
     Log.d(TAG, "onReceive() message: " + message);
   }
 
