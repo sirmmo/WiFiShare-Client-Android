@@ -14,16 +14,15 @@
     <application
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name" >
-        <activity
-            android:name=".WiFiSherActivity"
-            android:label="@string/app_name" >
+        
+        <uses-library />
+        <service android:process=":remote" android:name="WiFiShareService"></service>
+        <activity android:name="WiFiSherActivity">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN"/>
             </intent-filter>
         </activity>
-        <uses-library />
     </application>
 
 </manifest>

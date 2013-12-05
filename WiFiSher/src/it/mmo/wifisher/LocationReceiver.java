@@ -6,8 +6,10 @@ import android.os.Bundle;
 
 public class LocationReceiver implements LocationListener{
 
+	WiFiShareService service;
+	
 	public LocationReceiver(WiFiShareService wiFiShareService) {
-		// TODO Auto-generated constructor stub
+		service = new WiFiShareServiceConnector(wiFiShareService).getBoundService();
 	}
 
 	@Override
