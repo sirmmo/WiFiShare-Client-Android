@@ -17,16 +17,16 @@ import android.widget.Toast;
 
 public class WiFiScanReceiver extends BroadcastReceiver {
 	private static final String TAG = "WiFiScanReceiver";
-	WiFiSherActivity wifiDemo;
+	WiFiShareService  wifiDemo;
 
-	public WiFiScanReceiver(WiFiSherActivity wifiDemo) {
+	public WiFiScanReceiver(WiFiShareService  wifiDemo) {
 		super();
 		this.wifiDemo = wifiDemo;
 	}
 
 	@Override
 	public void onReceive(Context c, Intent intent) {
-		List<ScanResult> results = wifiDemo.wifi.getScanResults();
+		List<ScanResult> results = wifiDemo.getWifiManager().getScanResults();
 		ScanResult bestSignal = null;
 		JSONArray jsa = new JSONArray();
 
@@ -49,15 +49,6 @@ public class WiFiScanReceiver extends BroadcastReceiver {
 							result.level) < 0)
 				bestSignal = result;
 		}
-
-		// tv.setText(sb.toString());
-		String message = String.format(
-				"%s networks found. %s is the strongest.", results.size(),
-				bestSignal.SSID);
-		Toast.makeText(wifiDemo, message, Toast.LENGTH_LONG).show();
-
-		wifiDemo.writeScan(jsa);
-		Log.d(TAG, "onReceive() message: " + message);
 	}
 
 }
