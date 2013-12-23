@@ -1,5 +1,7 @@
 package it.mmo.wifisher.receivers;
 
+import java.util.concurrent.locks.Condition;
+
 import it.mmo.wifisher.WiFiShareService;
 
 import org.json.JSONException;
@@ -17,13 +19,14 @@ public class LocationReceiver implements LocationListener{
 	String varname;
 	SharedPreferences.Editor editor;
 	Messenger service;
-	
+	Condition condition;
 	
 	
 	public LocationReceiver(WiFiShareService wiFiShareService, String variable, SharedPreferences.Editor editor) {
 		this.wifiDemo = wiFiShareService;
 		this.varname = variable;
 		this.editor = editor;
+		this.condition = condition;
 	}
 
 	@Override
@@ -43,6 +46,7 @@ public class LocationReceiver implements LocationListener{
 		}
 		editor.putString(varname, jso.toString());
 		editor.commit();
+		condition.signal();
 	}
 
 	@Override

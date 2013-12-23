@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.json.JSONException;
@@ -30,8 +32,11 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.androidquery.AQuery;
+import com.androidquery.callback.AjaxCallback;
+import com.androidquery.callback.AjaxStatus;
 
 public class WiFiShareService extends Service{
 	private Looper mServiceLooper;
@@ -52,7 +57,6 @@ public class WiFiShareService extends Service{
 	}
 
 	private HashMap<String, String> managers = new HashMap<String, String>();
-	//private HashMap<String, ReentrantLock> locker = new HashMap<String, ReentrantLock>();
 
 	public WifiManager getWifiManager() {
 		return this.wifi;
@@ -73,10 +77,12 @@ public class WiFiShareService extends Service{
 		managers.put("wifi", "prepareWiFi");
 		managers.put("location", "prepareLocation");
 		managers.put("time", "prepareTime");
-
 	}
 
 	public int onStartCommand(Intent intent, int flags, int startId) {
+		sp = getSharedPreferences("it.mmo.wifishare.preferences", 0);
+
+		//get "parts"
 		Set<String> parts = new HashSet<String>();
 		if (intent.hasExtra("modes")){
 			String[] mode = intent.getStringArrayExtra("modes");
@@ -86,10 +92,21 @@ public class WiFiShareService extends Service{
 		}
 		else
 			parts = managers.keySet();
+		
+		//get "debug"
 		boolean debug = intent.getBooleanExtra("debug", false);
+		
+		//get "target"
+		String url = intent.getStringExtra("url");
+		if (url != null)
+			sp.edit().putString("url", url).commit();
+		else 
+			sp.edit().putString("url", "").commit();
+		//run this thing!
 		prepare(parts, debug);
 		return START_STICKY;
 	}
+	
 
 	public void prepareWiFi(String variable, SharedPreferences.Editor editor){
 		wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
@@ -126,7 +143,7 @@ public class WiFiShareService extends Service{
 
 	public void prepareTime(String variable, SharedPreferences.Editor editor){
 		Date date = new Date();
-		editor.putString(variable, date.toString());
+		editor.putString(variable, String.format("%s", date.getTime()));
 		editor.commit();
 	}
 
@@ -134,7 +151,6 @@ public class WiFiShareService extends Service{
 		this.prepare(managers.keySet(), false);
 	}
 	public void prepare(Set<String> list, boolean debug){
-		sp = getSharedPreferences("it.mmo.wifishare.preferences", 0);
 		for(Map.Entry<String,String> entry: managers.entrySet()){
 			if (list.contains(entry.getKey())){
 				try {
@@ -154,6 +170,24 @@ public class WiFiShareService extends Service{
 			for(String m: list){
 				Log.d("SET_"+m, sp.getString(m, "NONE"));
 			}
+		if (sp.getString("url", null) != null){
+			a.ajax(sp.getString("url",""), JSONObject.class, new AjaxCallback<JSONObject>(){
+				@Override
+                public void callback(String url, JSONObject json, AjaxStatus status) {
+                        if(json != null){
+                                
+                                //successful ajax call, show status code and json content
+                                Toast.makeText(a.getContext(), status.getCode() + ":" + json.toString(), Toast.LENGTH_LONG).show();
+                        
+                        }else{
+                                
+                                //ajax error, show error code
+                                Toast.makeText(a.getContext(), "Error:" + status.getCode(), Toast.LENGTH_LONG).show();
+                        }
+                }
+			});
+	
+		}
 	}
 
 }

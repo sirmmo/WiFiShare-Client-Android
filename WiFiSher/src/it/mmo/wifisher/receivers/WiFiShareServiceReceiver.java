@@ -1,5 +1,6 @@
-package it.mmo.wifisher;
+package it.mmo.wifisher.receivers;
 
+import it.mmo.wifisher.WiFiShareService;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;

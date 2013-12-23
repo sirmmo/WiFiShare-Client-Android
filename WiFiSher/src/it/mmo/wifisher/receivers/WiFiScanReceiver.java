@@ -3,6 +3,7 @@ package it.mmo.wifisher.receivers;
 import it.mmo.wifisher.WiFiShareService;
 
 import java.util.List;
+import java.util.concurrent.locks.Condition;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,12 +22,14 @@ public class WiFiScanReceiver extends BroadcastReceiver {
 	WiFiShareService  wifiDemo;
 	String varname;
 	SharedPreferences.Editor editor;
+	Condition condition;
 
 	public WiFiScanReceiver(WiFiShareService  wifiDemo, String variable, SharedPreferences.Editor editor) {
 		super();
 		this.wifiDemo = wifiDemo;
 		this.varname = variable;
 		this.editor = editor;
+		this.condition = condition;
 	}
 
 	@Override
@@ -56,6 +59,7 @@ public class WiFiScanReceiver extends BroadcastReceiver {
 		}
 		editor.putString(varname, jsa.toString());
 		editor.commit();
+		condition.signal();
 		//intent = new Intent(wifiDemo, WiFiShareService.class);
 		
 
