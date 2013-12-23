@@ -1,148 +1,159 @@
 package it.mmo.wifisher;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import it.mmo.wifisher.receivers.LocationReceiver;
+import it.mmo.wifisher.receivers.WiFiScanReceiver;
 
-import org.json.JSONArray;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import com.androidquery.AQuery;
-import com.androidquery.callback.AjaxCallback;
-import com.androidquery.callback.AjaxStatus;
-
-import android.os.Messenger;
 
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationManager;
-import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.os.Binder;
-import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
-import android.os.RemoteException;
+import android.os.Process;
 import android.util.Log;
 
-public class WiFiShareService extends Service {
-	static final int MSG_REGISTER_CLIENT = 1;
-	static final int MSG_UNREGISTER_CLIENT = 2;
-	static final int MSG_SET_SCANNER = 3;
-	static final int MSG_SET_POSITION = 4;
-	static final int MSG_SET_WIFI = 5;
+import com.androidquery.AQuery;
+
+public class WiFiShareService extends Service{
+	private Looper mServiceLooper;
+	private WifiManager wifi;
+	private LocationManager locationManager;
+	private SharedPreferences sp;
 
 	AQuery a = new AQuery(this);
 
-	ArrayList<Messenger> mClients = new ArrayList<Messenger>();
-	private Bundle mValue;
+	private final class ServiceHandler extends Handler {
+		public ServiceHandler(Looper looper) {
+			super(looper);
+		}
+		@Override
+		public void handleMessage(Message msg) {
 
-	final Messenger mMessenger = new Messenger(new IncomingHandler());
-
-	private final IBinder mBinder = new LocalBinder();
-
-	private WifiManager wifi;
-
-	private LocationManager locationManager;
-	private String locationProvider = LocationManager.GPS_PROVIDER;
-	private WiFiScanReceiver receiver;
-
-	private Location where_now;
-	private JSONArray what_now;
-
-	public class LocalBinder extends Binder {
-		WiFiShareService getService() {
-			return WiFiShareService.this;
 		}
 	}
 
-	@Override
-	public IBinder onBind(Intent intent) {
-		return mBinder;
-	}
+	private HashMap<String, String> managers = new HashMap<String, String>();
+	//private HashMap<String, ReentrantLock> locker = new HashMap<String, ReentrantLock>();
 
 	public WifiManager getWifiManager() {
 		return this.wifi;
 	}
 
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		Log.i("WiFiShareService", "Received start id " + startId + ": "
-				+ intent);
-		registerReceiver(new WiFiScanReceiver(this), new IntentFilter(
-				WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-
-		locationManager.requestLocationUpdates(locationProvider, 0, 0,
-				new LocationReceiver(this));
-		return START_STICKY;
+	public IBinder onBind(Intent arg0) {
+		return null;
 	}
 
 	@Override
-	public void onCreate() {// Setup WiFi
-		wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-		locationManager = (LocationManager) this
-				.getSystemService(Context.LOCATION_SERVICE);
+	public void onCreate(){
+		HandlerThread thread = new HandlerThread("ServiceStartArguments",
+				Process.THREAD_PRIORITY_BACKGROUND);
+		thread.start();
+		mServiceLooper = thread.getLooper();
+		new ServiceHandler(mServiceLooper);
+		managers.put("wifi", "prepareWiFi");
+		managers.put("location", "prepareLocation");
+		managers.put("time", "prepareTime");
+
 	}
 
-	class IncomingHandler extends Handler {
-		@Override
-		public void handleMessage(Message msg) {
-			switch (msg.what) {
-			case MSG_REGISTER_CLIENT:
-				mClients.add(msg.replyTo);
-				break;
-			case MSG_UNREGISTER_CLIENT:
-				mClients.remove(msg.replyTo);
-				break;
-			case MSG_SET_SCANNER:
-				mValue = msg.getData();
-				break;
-			case MSG_SET_POSITION:
-				try {
-					what_now = new JSONArray(mValue.getString("location"));
-				} catch (JSONException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-				break;
-			case MSG_SET_WIFI:
-				mValue = msg.getData();
-				try {
-					what_now = new JSONArray(mValue.getString("wifi"));
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				break;
-			default:
-				super.handleMessage(msg);
-			}
-			try {
-				JSONObject message = new JSONObject();
-				message.put("lc", where_now);
-				message.put("wf", what_now);
-				Map<String, Object> params = new HashMap<String, Object>();
-				params.put("q", message.toString());
-
-				a.ajax("localhost/ciccio", params, JSONObject.class,
-						new AjaxCallback<JSONObject>() {
-							@Override
-							public void callback(String url, JSONObject json,
-									AjaxStatus status) {
-
-							}
-						});
-			} catch (JSONException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		Set<String> parts = new HashSet<String>();
+		if (intent.hasExtra("modes")){
+			String[] mode = intent.getStringArrayExtra("modes");
+			for (String m: mode){
+				parts.add(m);
 			}
 		}
+		else
+			parts = managers.keySet();
+		boolean debug = intent.getBooleanExtra("debug", false);
+		prepare(parts, debug);
+		return START_STICKY;
 	}
+
+	public void prepareWiFi(String variable, SharedPreferences.Editor editor){
+		wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+		registerReceiver(new WiFiScanReceiver(this, variable, editor), new IntentFilter(
+				WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+	}
+
+	public void prepareLocation(String variable, SharedPreferences.Editor editor){
+		locationManager = (LocationManager) this
+				.getSystemService(Context.LOCATION_SERVICE);
+		locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+		Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+		JSONObject jso = new JSONObject();
+		try {
+			jso.put("lon", loc.getLongitude());
+			jso.put("lat", loc.getLatitude());
+			jso.put("alt", loc.getAltitude());
+			jso.put("time", loc.getTime());
+			jso.put("acc", loc.getAccuracy());
+			jso.put("bearing", loc.getBearing());
+			jso.put("speed", loc.getSpeed());
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		editor.putString(variable, jso.toString());
+		editor.commit();
+
+		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0,
+				new LocationReceiver(this, variable, editor));
+
+	}
+
+	public void prepareTime(String variable, SharedPreferences.Editor editor){
+		Date date = new Date();
+		editor.putString(variable, date.toString());
+		editor.commit();
+	}
+
+	public void prepare() {
+		this.prepare(managers.keySet(), false);
+	}
+	public void prepare(Set<String> list, boolean debug){
+		sp = getSharedPreferences("it.mmo.wifishare.preferences", 0);
+		for(Map.Entry<String,String> entry: managers.entrySet()){
+			if (list.contains(entry.getKey())){
+				try {
+					java.lang.reflect.Method method = this.getClass().getMethod(entry.getValue(), String.class, SharedPreferences.Editor.class);
+					method.invoke(this, entry.getKey(), sp.edit());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		for (String t:list){
+			
+		}
+		
+		if(debug)
+			for(String m: list){
+				Log.d("SET_"+m, sp.getString(m, "NONE"));
+			}
+	}
+
 }

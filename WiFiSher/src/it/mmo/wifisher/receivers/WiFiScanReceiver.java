@@ -1,4 +1,6 @@
-package it.mmo.wifisher;
+package it.mmo.wifisher.receivers;
+
+import it.mmo.wifisher.WiFiShareService;
 
 import java.util.List;
 
@@ -9,22 +11,22 @@ import org.json.JSONObject;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
-import android.os.Bundle;
-import android.os.Message;
-import android.os.RemoteException;
 import android.util.Log;
 
 public class WiFiScanReceiver extends BroadcastReceiver {
 	private static final String TAG = "WiFiScanReceiver";
 	WiFiShareService  wifiDemo;
-	WiFiShareServiceConnector  wifiConnDemo;
+	String varname;
+	SharedPreferences.Editor editor;
 
-	public WiFiScanReceiver(WiFiShareService  wifiDemo) {
+	public WiFiScanReceiver(WiFiShareService  wifiDemo, String variable, SharedPreferences.Editor editor) {
 		super();
-		this.wifiConnDemo = new WiFiShareServiceConnector(wifiDemo);
-		this.wifiDemo = wifiConnDemo.getBoundService();
+		this.wifiDemo = wifiDemo;
+		this.varname = variable;
+		this.editor = editor;
 	}
 
 	@Override
@@ -52,18 +54,11 @@ public class WiFiScanReceiver extends BroadcastReceiver {
 							result.level) < 0)
 				bestSignal = result;
 		}
-		// Give it some value as an example.
-					Message msg = Message.obtain(null,
-		            		WiFiShareService.MSG_SET_WIFI);
-					Bundle b = new Bundle();
-					b.putString("wifi", jsa.toString());
-					msg.setData(b); 
-					try {
-						this.wifiConnDemo.mService.send(msg);
-					} catch (RemoteException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+		editor.putString(varname, jsa.toString());
+		editor.commit();
+		//intent = new Intent(wifiDemo, WiFiShareService.class);
+		
+
 	}
 
 }

@@ -11,18 +11,23 @@ import android.view.View.OnClickListener;
 
 public class WiFiSherActivity extends Activity   {
 	/** Called when the activity is first created. */
-	private AQuery a = new AQuery(this);
+	private AQuery a;
 	private WiFiSherActivity that = this;
+	private Intent intent = null;
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		intent = new Intent(that, WiFiShareService.class);
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
+		a = new AQuery(this);
 		a.id(R.id.buttonScan).clicked( new OnClickListener() {
 
             @Override
             public void onClick(View v) {
-            	Intent intent = new Intent(that, WiFiShareService.class);
+            	intent.putExtra("modes", new String[] {"wifi","location", "time"});
             	startService(intent);
+            	
+            	
             }
 		});
 
