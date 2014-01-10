@@ -171,7 +171,7 @@ public class WiFiShareService extends Service{
 				Log.d("SET_"+m, sp.getString(m, "NONE"));
 			}
 		if (sp.getString("url", null) != null){
-			a.ajax(sp.getString("url",""), JSONObject.class, new AjaxCallback<JSONObject>(){
+			a.ajax(sp.getString("url","http://wifishare.net/collect"), JSONObject.class, new AjaxCallback<JSONObject>(){
 				@Override
                 public void callback(String url, JSONObject json, AjaxStatus status) {
                         if(json != null){
